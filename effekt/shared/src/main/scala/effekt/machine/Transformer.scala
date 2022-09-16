@@ -251,6 +251,11 @@ object Transformer {
       Binding { k =>
         LiteralDouble(literal_binding, v, k(literal_binding)) }
 
+    case lifted.StringLit(javastring) =>
+        val literal_binding = Variable(freshName("string_literal"), Type.String());
+        Binding { k =>
+          LiteralUTF8String(literal_binding, javastring.getBytes("utf-8"), k(literal_binding)) }
+
     case lifted.PureApp(lifted.BlockVar(blockName: symbols.BuiltinFunction), List(), args) =>
       val variable = Variable(freshName("x"), transform(blockName.result))
       transform(args).flatMap { values =>
@@ -338,6 +343,8 @@ object Transformer {
 
     case symbols.builtins.TDouble => Type.Double()
 
+    case symbols.builtins.TString => Type.String()
+
     case symbols.FunctionType(Nil, Nil, vparams, Nil, _, _) =>
       // TODO block params too
       Negative(List(vparams.map(transform)))
@@ -370,8 +377,7 @@ object Transformer {
       Positive(List(fields.map { field => transform(field.tpe) }))
 
     case _ =>
-      System.err.println(s"UNSUPPORTED TYPE: getClass($tpe) = ${tpe.getClass}")
-      Context.abort(s"unsupported type $tpe")
+      Context.abort(s"unsupported type: $tpe (class = ${tpe.getClass})")
   }
 
   def transform(id: Symbol): String =
